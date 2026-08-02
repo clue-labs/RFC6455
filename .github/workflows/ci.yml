@@ -8,6 +8,7 @@ jobs:
   PHPUnit:
     name: PHPUnit (PHP ${{ matrix.php }})(${{ matrix.env }}) on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       matrix:
         os:
