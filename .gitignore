@@ -2,4 +2,5 @@
 composer.lock
 vendor
 tests/ab/reports
+tests/ab/server.log
 reports

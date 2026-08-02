@@ -62,6 +62,8 @@ $socket->on('connection', static function (React\Socket\ConnectionInterface $con
             $connection->end(Message::toString(new Response(200, [], 'Shutting down echo server.' . PHP_EOL)));
             $socket->close();
 
+            echo 'Shutting down with ' . (count($connections) - 1) . ' connection(s) still open' . PHP_EOL;
+
             foreach ($connections as $open) {
                 if ($open !== $connection) {
                     $open->close();
@@ -104,4 +106,8 @@ $socket->on('connection', static function (React\Socket\ConnectionInterface $con
     });
 });
 
+echo 'Listening on ' . $socket->getAddress() . PHP_EOL;
+
 $loop->run();
+
+echo 'Echo server stopped' . PHP_EOL;

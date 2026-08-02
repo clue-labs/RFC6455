@@ -1,3 +1,4 @@
+set -e
 set -x
 cd tests/ab
 
@@ -26,10 +27,14 @@ if [ "$ABTEST" = "client" ]; then
 fi
 
 if [ "$ABTEST" = "server" ]; then
-  php -d memory_limit=256M startServer.php &
+  # keep the server off this script's stdout, an inherited pipe would keep the
+  # CI step running even after every test has completed
+  php -d memory_limit=256M startServer.php > server.log 2>&1 &
+  SERVER_PID=$!
+  trap 'kill $SERVER_PID 2>/dev/null' EXIT
   sleep 3
 
-  if [ "$OSTYPE" = "linux-gnu" ]; then
+  if [ "`uname`" = "Linux" ]; then
     IPADDR=`hostname -I | cut -f 1 -d ' '`
   else
     IPADDR=`ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}' | head -1 | tr -d 'adr:'`
@@ -45,4 +50,6 @@ if [ "$ABTEST" = "server" ]; then
 
   # send the shutdown command to the PHP echo server
   wget -O - -q http://127.0.0.1:9001/shutdown
+
+  cat server.log
 fi
