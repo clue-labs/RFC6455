@@ -28,12 +28,20 @@ $negotiator = new ServerNegotiator(
 
 $uException = new \UnderflowException;
 
+// Track open connections, closing the listening socket alone would leave any
+// established connection registered with the event loop and never return from run()
+$connections = new \SplObjectStorage();
 
-$socket->on('connection', static function (React\Socket\ConnectionInterface $connection) use ($negotiator, $closeFrameChecker, $uException, $socket): void {
+$socket->on('connection', static function (React\Socket\ConnectionInterface $connection) use ($negotiator, $closeFrameChecker, $uException, $socket, $connections): void {
+    $connections->attach($connection);
+    $connection->on('close', static function () use ($connections, $connection): void {
+        $connections->detach($connection);
+    });
+
     $headerComplete = false;
     $buffer = '';
     $parser = null;
-    $connection->on('data', static function ($data) use ($connection, &$parser, &$headerComplete, &$buffer, $negotiator, $closeFrameChecker, $uException, $socket): void {
+    $connection->on('data', static function ($data) use ($connection, &$parser, &$headerComplete, &$buffer, $negotiator, $closeFrameChecker, $uException, $socket, $connections): void {
         if ($headerComplete) {
             $parser->onData($data);
             return;
@@ -53,6 +61,12 @@ $socket->on('connection', static function (React\Socket\ConnectionInterface $con
         if ($negotiatorResponse->getStatusCode() !== 101 && $psrRequest->getUri()->getPath() === '/shutdown') {
             $connection->end(Message::toString(new Response(200, [], 'Shutting down echo server.' . PHP_EOL)));
             $socket->close();
+
+            foreach ($connections as $open) {
+                if ($open !== $connection) {
+                    $open->close();
+                }
+            }
             return;
         };
 
