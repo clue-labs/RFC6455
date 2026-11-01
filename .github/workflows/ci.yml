@@ -34,7 +34,7 @@ jobs:
       - run: php -d memory_limit=256M tests/ab/startServer.php &
       - run: until curl -I --no-progress-meter http://localhost:9001/; do sleep 0.1; done
         timeout-minutes: 1
-      - run: docker run --name ab -e PYTHONUNBUFFERED=1 -v "$PWD/tests/ab":/config -v "$PWD/tests/ab/reports":/reports --add-host host.docker.internal:host-gateway crossbario/autobahn-testsuite wstest -m fuzzingclient -s /config/fuzzingclient.json
+      - run: docker run --name ab -e PYTHONUNBUFFERED=1 -v "$PWD/tests/ab":/config -v "$PWD/tests/ab/reports":/reports --add-host host.docker.internal:host-gateway crossbario/autobahn-testsuite pypy /config/wstest-gc.py -m fuzzingclient -s /config/fuzzingclient.json
         timeout-minutes: 25
       - run: docker inspect -f 'exit={{.State.ExitCode}} oom={{.State.OOMKilled}}' ab
         if: ${{ always() }}
